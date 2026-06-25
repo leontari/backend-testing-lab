@@ -1,0 +1,50 @@
+[project]
+name = "backend-testing-lab"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.ruff]
+line-length = 79
+exclude = [
+    "**/build/",
+    "**/dict/",
+    # "**/tests/",
+]
+format.preview = true          # Switch to Ruff's experimental features
+format.indent-style = "space"
+format.quote-style = "double"
+format.line-ending = "lf"      # PEP8: Unix-style end of line symbol
+format.docstring-code-line-length = 78
+format.docstring-code-format = true
+lint.select = [ "ALL" ]
+lint.ignore = [
+  "ANN401", # allow Any as type annotation
+  "COM812", # Conflict with formatter
+  "CPY",    # No copyright statements
+  "D203",   # 'one-blank-line-befor-class' and 'no-blank-line-before-class' (D211) are incompatible
+  "D212",   # 'multi-line-summary-first-line' (D212) and 'multi-line-summary-second-line' (D213) are incompatible
+  "DOC501", # not working with Sphinx
+  "ISC001", # Conflict with formatter
+  "RUF067", # '__init__' module should only contain docstrings and re-exports
+  "S104",   # Possible binding to all interfaces
+]
+lint.per-file-ignores."**/tests/**/*.py" = [
+  "D",       # don't care about documentation in tests
+  "FBT",     # don't care about booleans as positional arguments in tests
+  "INP001",  # no implicit namespace
+  "PLC2701", # private import
+  "PLR0913", # any number of arguments in tests
+  "PLR0917", # any number of arguments in tests
+  "PLR2004", # Magic value used in comparison, consider replacing with a constant variable
+  "S",       # 'subprocess' call: check for execution of untrusted input
+  "S101",    # asserts allowed in tests...
+]
+lint.isort = { known-first-party = [
+    "",
+], required-imports = [
+  "from __future__ import annotations",
+] }
+lint.preview = true
