@@ -84,6 +84,8 @@ services:
   grafana:
     image: grafana/grafana
     container_name: grafana
+    volumes:
+      - ./infrastructure/grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
     ports:
       - "3000:3000"
     networks:
@@ -94,7 +96,8 @@ services:
   ##########
 
   gateway-service:
-    build: ./services/gateway-service
+    build:
+      context: ./services/gateway-service
     ports:
       - "8000:8000"
     depends_on:
