@@ -1,10 +1,9 @@
 """
-Runtime TraceContext storage.
+Async runtime trace context storage.
 
 This module encapsulates ContextVar and provides an async-safe
 storage for TraceContext instances.
 
-Only TraceContextStore interacts directly with ContextVar.
 """
 
 from __future__ import annotations
@@ -18,15 +17,12 @@ if TYPE_CHECKING:
 
 class TraceContextStore:
     """
-    Async-safe runtime TraceContext storage.
+    Async-safe runtime trace context storage.
 
-    The store provides isolation between asyncio Tasks
-    and HTTP requests.
-
-    Notes
-    -----
-    This class is the only component that accesses ContextVar
-    directly.
+    ContextVar provides isolation between:
+    - asyncio tasks;
+    - concurrent requests;
+    - background coroutines;
 
     """
 
@@ -37,7 +33,7 @@ class TraceContextStore:
             default=None,
         )
 
-    def get_current_trace(self) -> TraceContext | None:
+    def current(self) -> TraceContext | None:
         """
         Get current TraceContext.
 
@@ -48,10 +44,7 @@ class TraceContextStore:
         """
         return self._context.get()
 
-    def set_current_trace(
-        self,
-        trace: TraceContext,
-    ) -> Token[TraceContext | None]:
+    def set(self, trace: TraceContext) -> Token[TraceContext | None]:
         """
         Install TraceContext.
 
@@ -68,22 +61,19 @@ class TraceContextStore:
         """
         return self._context.set(trace)
 
-    def reset_current_trace(
-        self,
-        token: Token[TraceContext | None],
-    ) -> None:
+    def reset(self, token: Token[TraceContext | None]) -> None:
         """
         Restore previous TraceContext.
 
         Parameters
         ----------
         token:
-            Token returned by set_current_trace().
+            Token returned by set().
 
         """
         self._context.reset(token)
 
-    def clear_for_testing(self) -> None:
+    def clear(self) -> None:
         """
         Remove active TraceContext.
 
