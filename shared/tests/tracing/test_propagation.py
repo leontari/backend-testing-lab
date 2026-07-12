@@ -1,17 +1,21 @@
-from shared.tracing.models import RawTraceCarrier
+from shared.tracing.models import TraceContext
+from shared.tracing.propagator import TracePropagator
 
 
-def test_traceparent_roundtrip():
-    carrier = RawTraceCarrier(
-        version="00",
-        trace_id="a" * 32,
-        span_id="b" * 16,
-        trace_flags="01",
-    )
+def test_extract_traceparent():
+    propagator = TracePropagator()
+    headers = {"traceparent": "00-1234567890abcdef-abcdef1234567890-01"}
 
-    traceparent = carrier.traceparent
-    parsed = RawTraceCarrier.from_traceparent(traceparent)
+    context = propagator.extract(headers)
 
-    assert parsed.trace_id == carrier.trace_id
-    assert parsed.span_id == carrier.span_id
-    assert parsed.trace_flags == carrier.trace_flags
+    assert context.trace_id == "1234567890abcdef"
+
+
+def test_inject_traceparent():
+    propagator = TracePropagator()
+    context = TraceContext(trace_id="trace", span_id="span")
+    headers = {}
+
+    propagator.inject(context, headers)
+
+    assert "traceparent" in headers

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from shared.tracing.factory import TraceFactory
+from shared.tracing.tracing import Tracing
 from shared.tracing.manager import TraceManager
 
 
@@ -12,5 +12,5 @@ def trace_manager():
 
 
 @pytest.fixture
-def root_trace():
-    return TraceFactory.create_root_trace()
+def tracing():
+    return Tracing()

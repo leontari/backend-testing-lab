@@ -2,6 +2,7 @@
 Tracing domain exceptions.
 
 Used across propagators, managers and runtime storage.
+
 """
 
 from __future__ import annotations
@@ -21,14 +22,21 @@ class TraceContextMissingError(TraceError):
     """
 
 
-class InvalidTraceParentError(TraceError):
+class InvalidTraceContextError(TraceError):
     """
-    Invalid 'traceparent' error.
+    Invalid TraceContext error.
 
-    Raised when incoming `traceparent` header
-    does not match W3C specification.
+    Raised when `traceparent` header does not match W3C specification.
     """
 
 
 class InvalidTraceStateError(TraceError):
     """Raised when `tracestate` header cannot be parsed."""
+
+
+__all__ = (
+    "InvalidTraceContextError",
+    "InvalidTraceStateError",
+    "TraceContextMissingError",
+    "TraceError",
+)

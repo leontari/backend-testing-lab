@@ -1,175 +1,128 @@
 """
-Runtime TraceContext manager.
+Tracing runtime manager.
 
-Responsible for lifecycle management of TraceContext.
+Responsible for trace lifecycle management.
 
-The manager does not know anything about HTTP,
-Kafka or gRPC transports.
+Responsibilities:
+
+- access current TraceContext
+- create child/root spans
+- activate execution context
+- restore previous context
+
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Mapping
-
-from .exceptions import TraceContextMissingError
-from .propagator import TracePropagator
+from contextlib import asynccontextmanager
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from contextvars import Token
+    from collections.abc import AsyncIterator
 
     from .factory import TraceFactory
-    from .models import RawTraceCarrier, TraceContext
+    from .models import TraceContext
     from .store import TraceContextStore
 
 
+@dataclass(slots=True, frozen=True)
 class TraceManager:
-    """Runtime TraceContext lifecycle manager."""
+    """Runtime trace lifecycle manager."""
 
-    def __init__(
-        self,
-        *,
-        factory: TraceFactory,
-        propagator: TracePropagator,
-        store: TraceContextStore,
-    ) -> None:
+    factory: TraceFactory = field(default_factory=TraceFactory)
+    store: TraceContextStore = field(default_factory=TraceContextStore)
+
+    def current(self) -> TraceContext | None:
         """
-        Initialize TraceManager.
-
-        Parameters
-        ----------
-        store:
-            Runtime TraceContext storage.
-
-        factory:
-            TraceContext factory.
-
-        """
-        self._factory = factory
-        self._propagator = propagator
-        self._store = store
-
-    def from_headers(
-        self,
-        headers: Mapping[str, str]
-    ) -> RawTraceCarrier | None:
-        trace_context = self._store.get_current_trace()
-
-        if not trace_context:
-            return
-
-        carrier = trace_context.carrier
-        headers.update(self._propagator.inject(carrier=carrier))
-
-    def get_current_trace(
-        self,
-    ) -> TraceContext:
-        """
-        Return current TraceContext.
+        Return active trace context.
 
         Returns
         -------
-        TraceContext
-            Active trace.
-
-        Raises
-        ------
-        TraceContextMissingError
-            If no trace is installed.
+        TraceContext | None
+            Current execution trace.
 
         """
-        trace = self._store.get_current_trace()
+        return self.store.current()
 
-        if trace is None:
-            msg = "No active TraceContext."
-            raise TraceContextMissingError(msg)
-
-        return trace
-
-    def install_trace(
+    def create(
         self,
-        trace: TraceContext,
-    ) -> Token[TraceContext | None]:
+        source: TraceContext | None = None,
+    ) -> TraceContext:
         """
-        Install TraceContext.
+        Create new trace context.
 
         Parameters
         ----------
-        trace:
-            Runtime trace.
+        source:
+            Existing context.
+
+        Behavior
+        --------
+        source=None:
+            create root trace.
+
+        source=TraceContext:
+            create child span.
+        """
+
+        return self.factory.create(source)
+
+    def activate(self, context: TraceContext):
+        """
+        Activate trace context.
 
         Returns
         -------
         Token
-            Context rollback token.
+            ContextVar reset token.
 
         """
-        return self._store.set_current_trace(trace)
+        return self._store.set(context)
 
-    def restore_trace(
+    def deactivate(self, token) -> None:
+        """Restore previous context."""
+        self._store.reset(token)
+
+    @asynccontextmanager
+    async def span(
         self,
-        token: Token[TraceContext | None],
-    ) -> None:
+        source: TraceContext | None = None,
+    ) -> AsyncIterator[TraceContext]:
         """
-        Restore previous TraceContext.
+        Create and activate execution span.
 
-        Parameters
-        ----------
-        token:
-            Context rollback token.
-
-        """
-        self._store.reset_current_trace(token)
-
-    def create_root_trace(
-        self,
-    ) -> TraceContext:
-        """
-        Create root TraceContext.
-
-        Returns
+        Example
         -------
-        TraceContext
-            Newly created root trace.
+        async with manager.span():
+            await operation()
+
+        Lifecycle:
+        current context
+        |
+        v
+        create child
+        |
+        v
+        set ContextVar
+        |
+        v
+        execute code
+        |
+        v
+        reset ContextVar
 
         """
-        return self._factory.create_root_trace()
+        if source is None:
+            source = self.current()
 
-    def create_child_trace(
-        self,
-        parent: TraceContext,
-    ) -> TraceContext:
-        """
-        Create child TraceContext.
+        context = self.create(source)
+        token = self.activate(context)
 
-        Parameters
-        ----------
-        parent:
-            Parent trace.
+        try:
+            yield context
+        finally:
+            self.deactivate(token)
 
-        Returns
-        -------
-        TraceContext
-            Child trace.
 
-        """
-        return self._factory.create_child_span(parent)
-
-    def create_remote_trace(
-        self,
-        carrier: RawTraceCarrier,
-    ) -> TraceContext:
-        """
-        Create local TraceContext from remote carrier.
-
-        Parameters
-        ----------
-        carrier:
-            Incoming propagated context.
-
-        Returns
-        -------
-        TraceContext
-            Local runtime TraceContext.
-
-        """
-        return self._factory.create_remote_trace(carrier)
+__all__ = ("TraceManager",)

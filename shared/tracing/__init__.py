@@ -1,28 +1,22 @@
 """
-Distributed tracing core module.
+Distributed tracing module.
 
 Provides W3C-compatible trace context propagation
 for HTTP, gRPC and Kafka transports.
 
-Main components:
-- TraceContext
-- RawTraceCarrier
-- TraceFactory
-- TraceContextStore
 """
 
 from __future__ import annotations
 
-from .factory import TraceFactory
-from .models import RawTraceCarrier, TraceContext
-from .store import TraceContextStore
+from shared.tracing.fastapi import TraceMiddleware
+from shared.tracing.models import TraceContext
+from shared.tracing.tracing import Tracing
 
-__version__ = "0.1.1"
+__version__ = "1.0.0"
 
 __all__ = (
-    "RawTraceCarrier",
     "TraceContext",
-    "TraceContextStore",
-    "TraceFactory",
+    "TraceMiddleware",
+    "Tracing",
     "__version__",
 )
