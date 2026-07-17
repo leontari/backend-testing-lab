@@ -17,8 +17,3 @@ class HandlerNotFoundError(EventBusError):
 
 class EventDispatchError(EventBusError):
     """Raised when event dispatch fails."""
-
-
-class EventBusClosedError(EventBusError):
-    """Raised when EventBus already stopped."""
-

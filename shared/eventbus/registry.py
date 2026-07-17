@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from shared.messaging import Event
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, frozen=True)
 class EventRegistry:
     """
     Thread-safe event handler registry.
@@ -28,7 +28,7 @@ class EventRegistry:
     """
 
     _handlers: dict[type[Event], list[object]] = field(default_factory=dict)
-    _lock: RLock = field(default_factory=RLock, init=False)
+    _lock: RLock = field(init=False, default_factory=RLock)
 
     def register(
         self,
@@ -53,14 +53,14 @@ class EventRegistry:
 
             handlers.append(handler)
 
-    def get(self, event_type: type[Event]) -> tuple[object, ...]:
+    def resolve(self, event_type: type[Event]) -> tuple[object, ...]:
         """
-        Get handlers.
+        Resolve handlers.
 
         Returns
         -------
         tuple[object,...]
-            Registered handlers.
+            Immutable handler collection.
 
         """
         with self._lock:

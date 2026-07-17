@@ -3,18 +3,24 @@
 from __future__ import annotations
 
 import inspect
-from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from shared.messaging import Event
 
 
-@dataclass(slots=True)
 class EventDispatcher:
-    """Executes handlers."""
+    """
+    Executes event handlers.
 
-    async def dispatch(self, handler: object, event: Callable) -> None:
+    Supports:
+    - sync handlers;
+    - async handlers.
+    """
+
+    @classmethod
+    async def dispatch(cls, handler: object, event: Event) -> None:
+        """Execute handler."""
         method = getattr(handler, "handle")
         result = method(event)
 

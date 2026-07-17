@@ -1,4 +1,4 @@
-"""Event handler protocols."""
+"""Event handler contracts."""
 
 from __future__ import annotations
 
