@@ -1,82 +1,100 @@
 """
-Structured logging with distributed trace correlation.
+Public logger API.
 
-This module binds TraceContext to Python logging system,
-allowing automatic enrichment of log records with:
-
-- trace_id
-- span_id
-- parent_span_id
-- sampling flags
-
-It is fully ContextVar-safe and async-friendly.
+Application code should use this class only.
 """
 
 from __future__ import annotations
 
 import logging
-from contextvars import ContextVar
+from dataclasses import dataclass, field
+from types import MappingProxyType
 from typing import TYPE_CHECKING
 
+from shared.logger.context import LogContext, current_context, set_context
+from shared.logger.formatter import JsonFormatter
+
 if TYPE_CHECKING:
-    from shared.tracing.manager import TraceManager
+    from collections.abc import Mapping
 
-_log_context: ContextVar[dict[str, str] | None] = ContextVar(
-    "trace_log_context",
-    default=None,
-)
+    from shared.logger.config import LoggerConfig
 
 
-class TraceLoggingFilter(logging.Filter):
-    """Logging filter that injects trace context into log records."""
+@dataclass(slots=True, frozen=True)
+class Logger:
+    """
+    Application logger facade.
 
-    def __init__(self, trace_manager: TraceManager) -> None:
+    Hides stdlib logging configuration.
+    Normally should be registered as singleton in DI.
+
+    """
+
+    _logger: logging.Logger
+    _fields: Mapping[str, object] = field(default_factory=dict)
+
+    def bind(self, **fields: object) -> Logger:
         """
-        Initialize trace logging filter.
-
-        Parameters
-        ----------
-        trace_manager:
-            Runtime trace manager.
-
-        """
-        super().__init__()
-        self._trace_manager = trace_manager
-
-    def filter(self, record: logging.LogRecord) -> bool:
-        """
-        Enrich log record with trace context.
+        Create logger with bound fields.
 
         Returns
         -------
-        bool
-            Always True (log record is not filtered).
+        Logger
+            Logger with additional context.
 
         """
-        try:
-            trace = self._trace_manager.get_current_trace()
+        context = current_context()
+        set_context(LogContext({**context.fields, **fields}))
 
-            record.trace_id = trace.trace_id
-            record.span_id = trace.span_id
-            record.parent_span_id = trace.parent_span_id
+        return Logger(
+            self._logger,
+            MappingProxyType({**self._fields, **fields}),
+        )
 
-        except Exception:
-            # No active trace → safe fallback
-            record.trace_id = None
-            record.span_id = None
-            record.parent_span_id = None
+    def info(self, message: str, **fields: object) -> None:
+        """Write info message."""
+        self._logger.info(message, extra=fields)
 
-        return True
+    def error(self, message: str, **fields: object) -> None:
+        """Write error message."""
+        self._logger.error(message, extra=fields)
+
+    def exception(self, message: str, **fields: object) -> None:
+        """Write exception message."""
+        self._logger.exception(message, extra=fields)
 
 
-def get_log_context() -> dict[str, str] | None:
+def configure_logger(config: LoggerConfig) -> Logger:
     """
-    Return current logging context.
+    Configure application logger.
+
+    Used by composition root.
 
     Returns
     -------
-    dict[str, str]
-        Trace-aware structured log context.
+    Logger
+        Configured logger facade.
 
     """
-    return _log_context.get()
+    logger = logging.getLogger(config.service)
+    logger.setLevel(config.level)
+    handler = logging.StreamHandler()
+
+    handler.setFormatter(
+        JsonFormatter({
+            "service": config.service,
+            "environments": config.environment,
+            "version": config.version,
+        })
+    )
+
+    logger.handlers.clear()
+    logger.addHandler(handler)
+
+    return Logger(logger)
+
+
+__all__ = (
+    "Logger",
+    "configure_logger",
+)
