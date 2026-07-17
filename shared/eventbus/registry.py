@@ -30,11 +30,7 @@ class EventRegistry:
     _handlers: dict[type[Event], list[object]] = field(default_factory=dict)
     _lock: RLock = field(init=False, default_factory=RLock)
 
-    def register(
-        self,
-        event_type: type[Event],
-        handler: object,
-    ) -> None:
+    def register(self, event_type: type[Event], handler: object) -> None:
         """
         Register event handler.
 
