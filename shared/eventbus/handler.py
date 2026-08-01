@@ -25,6 +25,6 @@ class EventHandler(Protocol):
         Parameters
         ----------
         event:
-            Incoming event.
+            Published event.
 
         """

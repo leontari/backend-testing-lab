@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from uuid import UUID, uuid4
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from shared.workflow.instance import WorkflowInstance
 
 
 @dataclass(slots=True)
@@ -11,12 +14,13 @@ class WorkflowContext:
     """
     Runtime workflow context.
 
-    Stores:
-    - workflow id;
-    - current state;
-    - business data.
+    Wraps persistent instance.
 
     """
 
-    id: UUID = field(default_factory=uuid4)
-    data: dict[str, object] = field(default_factory=dict)
+    instance: WorkflowInstance
+
+    @property
+    def data(self):
+        """Workflow payload shortcut."""
+        return self.instance.payload

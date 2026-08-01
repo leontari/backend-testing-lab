@@ -6,14 +6,14 @@ from typing import Protocol
 
 
 class WorkflowStep(Protocol):
-    """Single workflow execution step."""
+    """Saga step contract."""
 
     async def execute(self, context) -> None:
         """Execute step."""
 
     async def compensate(self, context) -> None:
         """
-        Rollback step.
+        Compensating action.
 
         Used by Saga pattern.
         """

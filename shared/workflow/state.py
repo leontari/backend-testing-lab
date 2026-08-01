@@ -5,8 +5,8 @@ from __future__ import annotations
 from enum import Enum
 
 
-class WorkflowState(Enum):
-    """Workflow lifecycle states."""
+class WorkflowStatus(Enum):
+    """Persistent workflow status."""
 
     CREATED = "created"
     RUNNING = "running"
