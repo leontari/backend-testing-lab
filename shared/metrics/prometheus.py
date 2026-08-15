@@ -19,12 +19,10 @@ instead.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
 
 from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram
 
-if TYPE_CHECKING:
-    from shared.metrics.config import MetricsConfig
+from shared.metrics.config import MetricsConfig
 
 
 @dataclass(slots=True, frozen=True)

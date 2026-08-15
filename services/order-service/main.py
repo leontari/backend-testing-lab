@@ -1,9 +1,10 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
+import json
 import uuid
+
 import asyncpg
 from aiokafka import AIOKafkaProducer
-import json
+from fastapi import FastAPI
+from pydantic import BaseModel
 
 app = FastAPI()
 
